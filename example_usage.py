@@ -145,7 +145,7 @@ def main():
     print("=" * 60)
     
     example_single_website()
-    example_multiple_websites()
+    # example_multiple_websites()
     example_with_summary()
     example_json_output()
     example_custom_settings()

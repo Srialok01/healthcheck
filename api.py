@@ -7,6 +7,7 @@ A Python utility that performs comprehensive health checks on websites including
 - Response time measurement  
 - SSL certificate validation and expiry checking
 - Redirect handling
+- Comprehensive logging to .log files
 
 Usage:
     from api import HealthCheckerAPI
@@ -32,17 +33,100 @@ Usage:
 
 from health_checker import HealthChecker
 import json
+import logging
+import os
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 
 class HealthCheckerAPI:
     """
-    API wrapper for website health checking functionality
+    API wrapper for website health checking functionality with logging
     """
     
-    def __init__(self):
-        """Initialize the health checker API"""
+    def __init__(self, log_file: Optional[str] = None, enable_console_logging: bool = True):
+        """
+        Initialize the health checker API with logging
+        
+        Args:
+            log_file (str): Path to log file. If None, defaults to 'health_checker_YYYYMMDD.log'
+            enable_console_logging (bool): Whether to also log to console (default: True)
+        """
         self.health_checker = HealthChecker()
+        self.setup_logging(log_file, enable_console_logging)
+        
+        # Log initialization
+        self.logger.info("=" * 60)
+        self.logger.info("Health Checker API initialized")
+        self.logger.info(f"Timestamp: {datetime.now().isoformat()}")
+        self.logger.info("=" * 60)
+    
+    def setup_logging(self, log_file: Optional[str] = None, enable_console_logging: bool = True):
+        """
+        Set up logging configuration
+        
+        Args:
+            log_file (str): Path to log file
+            enable_console_logging (bool): Whether to also log to console
+        """
+        # Create logger
+        self.logger = logging.getLogger('HealthCheckerAPI')
+        self.logger.setLevel(logging.INFO)
+        
+        # Clear any existing handlers
+        self.logger.handlers.clear()
+        
+        # Create formatter
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        
+        # Set up file handler
+        if log_file is None:
+            timestamp = datetime.now().strftime('%Y%m%d')
+            log_file = f'health_checker_{timestamp}.log'
+        
+        self.log_file = log_file
+        file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+        
+        # Set up console handler if enabled
+        if enable_console_logging:
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(logging.INFO)
+            console_handler.setFormatter(formatter)
+            self.logger.addHandler(console_handler)
+        
+        self.logger.info(f"Logging initialized - Log file: {log_file}")
+    
+    def log_result(self, result: Dict[str, Any], operation: str = "health_check"):
+        """
+        Log health check result details
+        
+        Args:
+            result (dict): Health check result
+            operation (str): Operation type for logging context
+        """
+        self.logger.info(f"--- {operation.upper()} RESULT ---")
+        self.logger.info(f"URL: {result['url']}")
+        self.logger.info(f"Status Code: {result.get('status_code', 'N/A')}")
+        self.logger.info(f"Healthy: {result['status_healthy']}")
+        self.logger.info(f"Response Time: {result.get('response_time', 'N/A')}s")
+        self.logger.info(f"Final URL: {result.get('final_url', 'N/A')}")
+        
+        if result.get('ssl_checked'):
+            self.logger.info(f"SSL Valid: {result['ssl_valid']}")
+            if result.get('ssl_expiry'):
+                self.logger.info(f"SSL Expires: {result['ssl_expiry']}")
+                self.logger.info(f"Days Until Expiry: {result.get('ssl_days_until_expiry', 'N/A')}")
+        
+        if result.get('error'):
+            self.logger.error(f"Error: {result['error']}")
+        
+        self.logger.info("-" * 40)
     
     def check_website(self, url: str, timeout: int = 10, follow_redirects: bool = True) -> Dict[str, Any]:
         """
@@ -67,8 +151,11 @@ class HealthCheckerAPI:
                 - ssl_days_until_expiry: Days until SSL expires
                 - error: Error message if any
         """
+        self.logger.info(f"Starting health check for URL: {url}")
+        self.logger.info(f"Config - Timeout: {timeout}s, Follow Redirects: {follow_redirects}")
+        
         if not self._validate_url(url):
-            return {
+            error_result = {
                 'url': url,
                 'error': 'Invalid URL format',
                 'status_healthy': False,
@@ -81,8 +168,13 @@ class HealthCheckerAPI:
                 'ssl_expiry': None,
                 'ssl_days_until_expiry': None
             }
+            self.logger.error(f"Invalid URL format: {url}")
+            self.log_result(error_result, "validation_error")
+            return error_result
         
-        return self.health_checker.check_website_health(url, timeout, follow_redirects)
+        result = self.health_checker.check_website_health(url, timeout, follow_redirects)
+        self.log_result(result, "single_check")
+        return result
     
     def check_multiple_websites(self, urls: List[str], timeout: int = 10, follow_redirects: bool = True) -> List[Dict[str, Any]]:
         """
@@ -96,10 +188,16 @@ class HealthCheckerAPI:
         Returns:
             list: List of health check results for each URL
         """
+        self.logger.info(f"Starting bulk health check for {len(urls)} URLs")
+        self.logger.info(f"URLs to check: {', '.join(urls)}")
+        
         results = []
-        for url in urls:
+        for i, url in enumerate(urls, 1):
+            self.logger.info(f"Checking URL {i}/{len(urls)}: {url}")
             result = self.check_website(url, timeout, follow_redirects)
             results.append(result)
+        
+        self.logger.info(f"Bulk health check completed for {len(urls)} URLs")
         return results
     
     def get_summary(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -123,7 +221,27 @@ class HealthCheckerAPI:
                 - fastest_response_time: Fastest response time
                 - slowest_response_time: Slowest response time
         """
-        return self.health_checker.get_health_summary(results)
+        self.logger.info("Generating summary statistics")
+        summary = self.health_checker.get_health_summary(results)
+        
+        # Log summary details
+        self.logger.info("--- SUMMARY STATISTICS ---")
+        self.logger.info(f"Total Sites: {summary.get('total_sites', 0)}")
+        self.logger.info(f"Healthy Sites: {summary.get('healthy_sites', 0)}")
+        self.logger.info(f"Unhealthy Sites: {summary.get('unhealthy_sites', 0)}")
+        self.logger.info(f"Health Percentage: {summary.get('health_percentage', 0):.1f}%")
+        self.logger.info(f"Average Response Time: {summary.get('average_response_time', 0):.3f}s")
+        self.logger.info(f"SSL Sites Checked: {summary.get('ssl_sites_checked', 0)}")
+        self.logger.info(f"Valid SSL Sites: {summary.get('ssl_valid_sites', 0)}")
+        self.logger.info(f"Sites with Errors: {summary.get('sites_with_errors', 0)}")
+        
+        if summary.get('fastest_response_time'):
+            self.logger.info(f"Fastest Response: {summary['fastest_response_time']:.3f}s")
+        if summary.get('slowest_response_time'):
+            self.logger.info(f"Slowest Response: {summary['slowest_response_time']:.3f}s")
+        
+        self.logger.info("-" * 30)
+        return summary
     
     def check_website_json(self, url: str, timeout: int = 10, follow_redirects: bool = True) -> str:
         """
@@ -183,11 +301,16 @@ def main():
     parser.add_argument('--no-redirects', action='store_true', help='Do not follow redirects')
     parser.add_argument('--summary', action='store_true', help='Show summary statistics')
     parser.add_argument('--json', action='store_true', help='Output results as JSON')
+    parser.add_argument('--log-file', type=str, help='Custom log file path (default: health_checker_YYYYMMDD.log)')
+    parser.add_argument('--no-console-log', action='store_true', help='Disable console logging (log only to file)')
     
     args = parser.parse_args()
     
-    # Create API instance
-    api = HealthCheckerAPI()
+    # Create API instance with logging configuration
+    api = HealthCheckerAPI(
+        log_file=args.log_file,
+        enable_console_logging=not args.no_console_log
+    )
     
     # Check websites
     if len(args.urls) == 1:
