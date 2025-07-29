@@ -1,8 +1,8 @@
-# Website Health Checker
+# Website Health Checker API
 
 ## Overview
 
-This is a Streamlit-based web application that provides comprehensive website health monitoring capabilities. The application allows users to check website status, response times, SSL certificate validity, and other health metrics for single or multiple URLs. It features a clean, user-friendly interface with configurable options for timeout settings and redirect handling.
+This project has been transformed from a Streamlit web application into a comprehensive Python API utility for website health monitoring. The API provides programmatic access to health checking capabilities including HTTP status verification, response time measurement, SSL certificate validation, and redirect handling. It supports both single and bulk URL checking with detailed reporting and summary statistics.
 
 ## User Preferences
 
@@ -10,53 +10,60 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-The application follows a simple two-tier architecture:
+The application follows a clean API-first architecture:
 
-**Frontend Layer**: Streamlit web interface that provides user interaction and data visualization
-**Backend Layer**: Python-based health checking logic encapsulated in a dedicated class
+**API Layer**: Python API wrapper (HealthCheckerAPI) that provides programmatic access to health checking functionality
+**Core Layer**: Health checking logic encapsulated in the HealthChecker class with comprehensive error handling
+**CLI Layer**: Command-line interface for direct usage and testing
 
-This architecture was chosen for its simplicity and rapid development capabilities, making it ideal for a focused utility application. The monolithic approach eliminates complexity while providing all necessary functionality.
+This architecture was redesigned to eliminate web dependencies and focus on programmatic access, making it ideal for integration into monitoring systems, CI/CD pipelines, and other automation tools.
 
 ## Key Components
 
-### 1. Streamlit Frontend (app.py)
-- **Purpose**: User interface and application orchestration
+### 1. API Wrapper (api.py)
+- **Purpose**: Main API interface and command-line tool
 - **Features**: 
-  - Single URL and bulk URL input methods
-  - Configurable timeout and redirect settings
-  - Real-time results display
-- **Design Choice**: Streamlit was selected for rapid prototyping and built-in web interface capabilities
+  - Single and multiple URL health checking
+  - JSON output support
+  - Command-line interface with configurable options
+  - URL validation and error handling
+- **Design Choice**: API-first approach enables integration with various systems and automation tools
 
 ### 2. Health Checker Module (health_checker.py)
 - **Purpose**: Core health checking functionality
 - **Capabilities**:
-  - HTTP status code verification
-  - Response time measurement
-  - SSL certificate validation and expiry checking
-  - Redirect handling
-- **Design Choice**: Separate class-based module for modularity and potential reuse
+  - HTTP status code verification with comprehensive error handling
+  - Precise response time measurement
+  - SSL certificate validation and expiry date calculation
+  - Configurable redirect handling
+  - Summary statistics generation
+- **Design Choice**: Enhanced with better error handling and type safety for robust API usage
 
-### 3. Configuration Management
-- **Timeout Settings**: Configurable request timeouts (5-30 seconds)
-- **Redirect Handling**: Optional redirect following
-- **User Agent**: Default user agent to prevent blocking
+### 3. Example Usage (example_usage.py)
+- **Purpose**: Comprehensive examples demonstrating API usage
+- **Capabilities**:
+  - Single and multiple website checking examples
+  - JSON output demonstrations
+  - Custom configuration examples
+  - Summary statistics usage
+- **Design Choice**: Provides clear usage patterns for developers integrating the API
 
 ## Data Flow
 
-1. **Input Collection**: Users provide URLs through either single input or bulk text area
-2. **Configuration**: Users set timeout and redirect preferences via sidebar
-3. **Health Checking**: URLs are processed through the HealthChecker class
-4. **Results Processing**: Health check results are formatted and displayed
-5. **Data Presentation**: Results shown in structured format with status indicators
+1. **API Input**: URLs provided via Python method calls or command-line arguments
+2. **URL Validation**: Input URLs validated for proper format before processing
+3. **Health Checking**: URLs processed through HealthChecker class with configurable options
+4. **Results Processing**: Comprehensive health check data collected including SSL information
+5. **Output Generation**: Results returned as Python dictionaries or JSON strings
+6. **Summary Statistics**: Optional aggregated statistics calculated from multiple results
 
-The flow is designed to be synchronous and immediate, providing real-time feedback to users.
+The flow is designed for programmatic integration while maintaining synchronous operation for immediate feedback.
 
 ## External Dependencies
 
 ### Core Libraries
-- **Streamlit**: Web application framework for the user interface
 - **Requests**: HTTP library for making web requests and handling responses
-- **Pandas**: Data manipulation and presentation (implied from import)
+- **JSON**: Built-in library for JSON serialization and output formatting
 
 ### Standard Library Dependencies
 - **ssl**: SSL certificate validation
@@ -65,43 +72,58 @@ The flow is designed to be synchronous and immediate, providing real-time feedba
 - **datetime**: Timestamp generation
 - **time**: Performance timing measurements
 
-**Rationale**: Minimal external dependencies were chosen to reduce complexity and ensure reliability. The requests library provides robust HTTP handling, while Streamlit offers rapid web UI development.
+**Rationale**: Minimal external dependencies were chosen to reduce complexity and ensure reliability. The requests library provides robust HTTP handling, while standard library modules handle data processing and CLI functionality.
 
 ## Deployment Strategy
 
 The application is designed for simple deployment scenarios:
 
 ### Local Development
-- Direct Python execution with Streamlit server
+- Direct Python execution as API or CLI tool
 - No database or complex infrastructure requirements
-- Self-contained application with minimal setup
+- Self-contained utility with minimal setup
 
 ### Production Considerations
-- Can be deployed on any platform supporting Python and Streamlit
+- Can be integrated into any Python-based system
 - No persistent storage requirements (stateless operation)
-- Horizontal scaling possible through load balancing
-- Container-friendly architecture
+- Suitable for monitoring systems, CI/CD pipelines, and automation tools
+- Container-friendly and serverless-compatible architecture
 
-**Design Rationale**: The stateless, self-contained design ensures easy deployment and maintenance while avoiding infrastructure complexity for this utility application.
+**Design Rationale**: The API-first, stateless design ensures easy integration and maintenance while providing maximum flexibility for different use cases and deployment scenarios.
 
 ## Key Architectural Decisions
 
-### 1. Stateless Design
-- **Problem**: Need for simple, reliable health checking
-- **Solution**: Stateless application with no data persistence
-- **Benefits**: Easy deployment, no database management, improved reliability
+### 1. API-First Architecture
+- **Problem**: Need for programmatic access to health checking functionality
+- **Solution**: Clean API wrapper with CLI support
+- **Benefits**: Easy integration, automation-friendly, multiple interface options
 
-### 2. Session-based HTTP Handling
-- **Problem**: Efficient handling of multiple requests
-- **Solution**: Reusable requests session with default headers
-- **Benefits**: Connection reuse, consistent headers, better performance
+### 2. Enhanced Error Handling
+- **Problem**: Robust handling of network and SSL errors
+- **Solution**: Comprehensive exception handling with detailed error messages
+- **Benefits**: Reliable operation, clear debugging information, graceful degradation
 
-### 3. Modular Health Checking
-- **Problem**: Separation of concerns between UI and business logic
-- **Solution**: Dedicated HealthChecker class
+### 3. Modular Design
+- **Problem**: Separation of concerns between API interface and core functionality
+- **Solution**: Dedicated HealthChecker class with API wrapper
 - **Benefits**: Testability, reusability, clean code organization
 
-### 4. Flexible Input Methods
-- **Problem**: Supporting both single and bulk URL checking
-- **Solution**: Radio button selection between input methods
-- **Benefits**: User flexibility, efficient bulk operations
+### 4. Flexible Output Formats
+- **Problem**: Supporting different integration requirements
+- **Solution**: Python dictionaries, JSON strings, and formatted CLI output
+- **Benefits**: Multiple integration options, easy data processing, human-readable results
+
+### 5. Type Safety and Validation
+- **Problem**: Handling various SSL certificate formats and edge cases
+- **Solution**: Enhanced type checking and null safety in SSL validation
+- **Benefits**: Improved reliability, better error handling, fewer runtime issues
+
+## Recent Changes (July 29, 2025)
+
+✓ Transformed from Streamlit web application to Python API utility
+✓ Created comprehensive API wrapper (api.py) with CLI support
+✓ Enhanced error handling and type safety in SSL certificate validation
+✓ Added example usage file with comprehensive demonstrations
+✓ Implemented JSON output capabilities for easy integration
+✓ Created detailed README documentation with usage examples
+✓ Removed web interface dependencies for cleaner deployment

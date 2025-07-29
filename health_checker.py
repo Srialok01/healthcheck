@@ -124,22 +124,23 @@ class HealthChecker:
                     ssl_result['ssl_valid'] = True
                     
                     # Parse expiry date
-                    if 'notAfter' in cert:
+                    if cert and 'notAfter' in cert:
                         expiry_str = cert['notAfter']
                         # Parse the date format: 'MMM DD HH:MM:SS YYYY GMT'
-                        expiry_date = datetime.strptime(expiry_str, '%b %d %H:%M:%S %Y %Z')
-                        expiry_date = expiry_date.replace(tzinfo=timezone.utc)
-                        
-                        ssl_result['ssl_expiry'] = expiry_date.strftime('%Y-%m-%d %H:%M:%S UTC')
-                        
-                        # Calculate days until expiry
-                        now = datetime.now(timezone.utc)
-                        days_until_expiry = (expiry_date - now).days
-                        ssl_result['ssl_days_until_expiry'] = days_until_expiry
-                        
-                        # If certificate is expired, mark as invalid
-                        if days_until_expiry < 0:
-                            ssl_result['ssl_valid'] = False
+                        if isinstance(expiry_str, str):
+                            expiry_date = datetime.strptime(expiry_str, '%b %d %H:%M:%S %Y %Z')
+                            expiry_date = expiry_date.replace(tzinfo=timezone.utc)
+                            
+                            ssl_result['ssl_expiry'] = expiry_date.strftime('%Y-%m-%d %H:%M:%S UTC')
+                            
+                            # Calculate days until expiry
+                            now = datetime.now(timezone.utc)
+                            days_until_expiry = (expiry_date - now).days
+                            ssl_result['ssl_days_until_expiry'] = days_until_expiry
+                            
+                            # If certificate is expired, mark as invalid
+                            if days_until_expiry < 0:
+                                ssl_result['ssl_valid'] = False
                             
         except ssl.SSLError as e:
             ssl_result['ssl_valid'] = False
